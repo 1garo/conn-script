@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"text/tabwriter"
 )
 
 //type bt struct{
@@ -19,18 +20,18 @@ var bt2 = "10.112.16.84"
 //    bt3 := "10.168.16.87"
 //    bt3_vpn := "10.174.225.14"
 //}
-var bt string
 var connectionType = "ssh"
 var skipSshFingerprint = "StrictHostKeyChecking=no"
 
-// TODO: move this code to the credentials module
 type CredentialTim struct {
 	User     string `json:"user"`
 	Password string `json:"pass"`
 }
+
 type HostnameTim struct {
 	Credentials map[string]*CredentialTim
 }
+
 type Credential struct {
 	User        string `json:"user"`
 	Password    string `json:"pass"`
@@ -93,8 +94,22 @@ func main() {
 				if err != nil {
 					log.Fatal(err)
 				}
+				w := new(tabwriter.Writer)
+				w.Init(os.Stdout, 8, 8, 0, '\t', 0)
+				defer w.Flush()
+				_, err = fmt.Fprintf(w, "\n %s\t%s\t", "Hostname", "Environment")
+				if err != nil {
+					log.Fatal(err)
+				}
+				_, err = fmt.Fprintf(w, "\n %s\t%s\t", "--------", "-----------")
+				if err != nil {
+					log.Fatal(err)
+				}
 				for i := range res {
-					fmt.Println(i)
+					if i == "tim_config" {
+						continue
+					}
+					fmt.Fprintf(w, "\n %s\t%s\t", res[i].User, res[i].EnvType)
 				}
 				return nil
 			},
@@ -103,20 +118,27 @@ func main() {
 			Name:  "a",
 			Usage: "Add a new hostname to the json file",
 			Action: func(c *cli.Context) error {
-				credentials := make(map[string]*Credential)
-				credentials[c.String("n")] = &Credential{
+				credentials := Credential{
 					User:        c.String("u"),
 					Password:    c.String("p"),
 					Description: c.String("d"),
 					EnvType:     c.String("e"),
 				}
-				err := addHostname(credentials)
+				err := addHostname(credentials, c.String("n"))
 				if err != nil {
 					log.Fatal(err)
 				}
 				return nil
 			},
 			Flags: addFlags,
+		},
+		{
+			Name:  "c",
+			Usage: "Change details of a hostname",
+			Action: func(c *cli.Context) error {
+				fmt.Println("Change function")
+				return nil
+			},
 		},
 	}
 	err := app.Run(os.Args)
@@ -125,14 +147,14 @@ func main() {
 	}
 }
 
-func addHostname(credentials map[string]*Credential) error {
-	// TODO: Append the file not overwrite it - https://stackoverflow.com/questions/51795678/add-a-new-key-value-pair-to-a-json-object
-	var hostname Hostname
-	file, _ := ioutil.ReadFile("pass.json")
-	json.Unmarshal(file, &hostname.Credentials)
-	fmt.Println(hostname)
-	//	json.NewDecoder()
-	jsonString, err := json.MarshalIndent(credentials, "", "    ")
+func addHostname(credentials Credential, name string) error {
+	var hostname map[string]Credential
+	jsonFile, _ := os.Open("pass.json")
+	file, _ := ioutil.ReadAll(jsonFile)
+	fmt.Printf("%v\n", string(file))
+	json.Unmarshal(file, &hostname)
+	hostname[name] = credentials
+	jsonString, err := json.MarshalIndent(hostname, "", "    ")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -200,13 +222,13 @@ func GetCredentialsTim(hostname string) (*CredentialTim, error) {
 	return res, nil
 }
 
-func listAllHostnames() (map[string]string, error) {
+func listAllHostnames() (map[string]Credential, error) {
 	jsonFile, err := os.Open("pass.json")
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer jsonFile.Close()
-	var hostname map[string]string
+	var hostname map[string]Credential
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	err = json.Unmarshal(byteValue, &hostname)
 	res := hostname
