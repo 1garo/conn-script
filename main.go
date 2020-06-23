@@ -1,48 +1,35 @@
 package main
 
 import (
-	"encoding/json"
+	cs "conn-script/credentials"
+	hn "conn-script/hostname"
+	"conn-script/types"
 	"fmt"
 	gp "github.com/keybase/gexpect"
-	"github.com/urfave/cli"
-	"io/ioutil"
+	"github.com/urfave/cli/v2"
 	"log"
 	"os"
 	"regexp"
 	"text/tabwriter"
 )
 
-//type bt struct{
-//    bt11 := ""
-//    bt1 := "10.168.16.84"
 var bt2 = "10.112.16.84"
 
-//    bt3 := "10.168.16.87"
-//    bt3_vpn := "10.174.225.14"
-//}
-var connectionType = "ssh"
-var skipSshFingerprint = "StrictHostKeyChecking=no"
-
-type CredentialTim struct {
-	User     string `json:"user"`
-	Password string `json:"pass"`
-}
-
-type HostnameTim struct {
-	Credentials map[string]*CredentialTim
-}
-
-type Credential struct {
-	User        string `json:"user"`
-	Password    string `json:"pass"`
-	Description string `json:"description"`
-	EnvType     string `json:"env_type"`
-}
-type Hostname struct {
-	Credentials map[string]*Credential
-}
+const connectionType = "ssh"
+const skipSshFingerprint = "StrictHostKeyChecking=no"
 
 func main() {
+	app, err := appConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func appConfig() (*cli.App, error) {
 	app := cli.NewApp()
 	app.Name = "conn - aliases to facilitate navigation on servers"
 	app.Usage = "conn -u -n -d -b -p -e -c | need parameters (e.g, -e PROD)"
@@ -53,24 +40,19 @@ func main() {
 	}
 	addFlags := []cli.Flag{
 		&cli.StringFlag{
-			Name:  "n",
-			Value: "",
+			Name: "n",
 		},
 		&cli.StringFlag{
-			Name:  "u",
-			Value: "",
+			Name: "u",
 		},
 		&cli.StringFlag{
-			Name:  "p",
-			Value: "",
+			Name: "p",
 		},
 		&cli.StringFlag{
-			Name:  "d",
-			Value: "",
+			Name: "d",
 		},
 		&cli.StringFlag{
-			Name:  "e",
-			Value: "",
+			Name: "e",
 		},
 	}
 	app.Commands = []*cli.Command{
@@ -90,18 +72,18 @@ func main() {
 			Name:  "l",
 			Usage: "List all hostname unable to be connected",
 			Action: func(c *cli.Context) error {
-				res, err := listAllHostnames()
+				res, err := hn.ListAllHostname()
 				if err != nil {
 					log.Fatal(err)
 				}
 				w := new(tabwriter.Writer)
 				w.Init(os.Stdout, 8, 8, 0, '\t', 0)
 				defer w.Flush()
-				_, err = fmt.Fprintf(w, "\n %s\t%s\t", "Hostname", "Environment")
+				_, err = fmt.Fprintf(w, "\n %s\t\t%s\t\t", "Hostname", "Environment")
 				if err != nil {
 					log.Fatal(err)
 				}
-				_, err = fmt.Fprintf(w, "\n %s\t%s\t", "--------", "-----------")
+				_, err = fmt.Fprintf(w, "\n %s\t\t%s\t\t", "--------", "-----------")
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -109,7 +91,7 @@ func main() {
 					if i == "tim_config" {
 						continue
 					}
-					fmt.Fprintf(w, "\n %s\t%s\t", res[i].User, res[i].EnvType)
+					fmt.Fprintf(w, "\n %s\t\t%s\t\t", i, res[i].EnvType)
 				}
 				return nil
 			},
@@ -118,13 +100,13 @@ func main() {
 			Name:  "a",
 			Usage: "Add a new hostname to the json file",
 			Action: func(c *cli.Context) error {
-				credentials := Credential{
+				credentials := types.Credential{
 					User:        c.String("u"),
 					Password:    c.String("p"),
 					Description: c.String("d"),
 					EnvType:     c.String("e"),
 				}
-				err := addHostname(credentials, c.String("n"))
+				err := hn.AddHostname(credentials, c.String("n"))
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -141,36 +123,15 @@ func main() {
 			},
 		},
 	}
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func addHostname(credentials Credential, name string) error {
-	var hostname map[string]Credential
-	jsonFile, _ := os.Open("pass.json")
-	file, _ := ioutil.ReadAll(jsonFile)
-	fmt.Printf("%v\n", string(file))
-	json.Unmarshal(file, &hostname)
-	hostname[name] = credentials
-	jsonString, err := json.MarshalIndent(hostname, "", "    ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = ioutil.WriteFile("pass.json", jsonString, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return nil
+	return app, nil
 }
 
 func connect(hostname string, bt string) error {
-	userData, err := GetCredentials(hostname)
+	userData, err := cs.GetCredentials(hostname)
 	if err != nil {
 		fmt.Printf("%s\nProblem while getting your credentials.", err)
 	}
-	timData, err := GetCredentialsTim("tim_config")
+	timData, err := cs.GetCredentialsTim("tim_config")
 	if err != nil {
 		fmt.Printf("%s\nProblems while getting your tim credentials", err)
 	}
@@ -188,49 +149,4 @@ func connect(hostname string, bt string) error {
 	child.SendLine(userData.Password)
 	child.Interact()
 	return nil
-}
-
-func GetCredentials(hostname string) (*Credential, error) {
-	jsonFile, err := os.Open("pass.json")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	var credentials Hostname
-	err = json.Unmarshal(byteValue, &credentials.Credentials)
-	if err != nil {
-		fmt.Println(err)
-	}
-	res := credentials.Credentials[hostname]
-	return res, nil
-}
-
-func GetCredentialsTim(hostname string) (*CredentialTim, error) {
-	jsonFile, err := os.Open("pass.json")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	var credentials HostnameTim
-	err = json.Unmarshal(byteValue, &credentials.Credentials)
-	if err != nil {
-		fmt.Println(err)
-	}
-	res := credentials.Credentials[hostname]
-	return res, nil
-}
-
-func listAllHostnames() (map[string]Credential, error) {
-	jsonFile, err := os.Open("pass.json")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer jsonFile.Close()
-	var hostname map[string]Credential
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	err = json.Unmarshal(byteValue, &hostname)
-	res := hostname
-	return res, nil
 }
