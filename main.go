@@ -3,7 +3,6 @@ package main
 import (
 	cs "conn-script/credentials"
 	hn "conn-script/hostname"
-	"conn-script/types"
 	"fmt"
 	gp "github.com/keybase/gexpect"
 	"github.com/urfave/cli/v2"
@@ -13,8 +12,7 @@ import (
 	"text/tabwriter"
 )
 
-var bt2 = "10.112.16.84"
-
+const bt2 = "10.112.16.84"
 const connectionType = "ssh"
 const skipSshFingerprint = "StrictHostKeyChecking=no"
 
@@ -31,14 +29,14 @@ func main() {
 
 func appConfig() (*cli.App, error) {
 	app := cli.NewApp()
-	app.Name = "conn - aliases to facilitate navigation on servers"
-	app.Usage = "conn -u -n -d -b -p -e -c | need parameters (e.g, -e PROD)"
+	app.Name = "ssh-conn - Aliases to facilitate connect on servers based on a json file"
+	app.Usage = "see the Usage below for more information."
 	connFlags := []cli.Flag{
 		&cli.StringFlag{
 			Name: "host",
 		},
 	}
-	addFlags := []cli.Flag{
+	addHostnameFlags := []cli.Flag{
 		&cli.StringFlag{
 			Name: "n",
 		},
@@ -53,6 +51,28 @@ func appConfig() (*cli.App, error) {
 		},
 		&cli.StringFlag{
 			Name: "e",
+		},
+	}
+	ChangeCredentialsFlags := []cli.Flag{
+		&cli.StringFlag{
+			Name:     "n",
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     "u",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "p",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "d",
+			Required: false,
+		},
+		&cli.StringFlag{
+			Name:     "e",
+			Required: false,
 		},
 	}
 	app.Commands = []*cli.Command{
@@ -100,27 +120,33 @@ func appConfig() (*cli.App, error) {
 			Name:  "a",
 			Usage: "Add a new hostname to the json file",
 			Action: func(c *cli.Context) error {
-				credentials := types.Credential{
-					User:        c.String("u"),
-					Password:    c.String("p"),
-					Description: c.String("d"),
-					EnvType:     c.String("e"),
+				credentials, err := cs.CreateCredentialVar(c)
+				if err != nil {
+					log.Fatal(err)
 				}
-				err := hn.AddHostname(credentials, c.String("n"))
+				err = hn.AddHostname(credentials, c.String("n"))
 				if err != nil {
 					log.Fatal(err)
 				}
 				return nil
 			},
-			Flags: addFlags,
+			Flags: addHostnameFlags,
 		},
 		{
 			Name:  "c",
 			Usage: "Change details of a hostname",
 			Action: func(c *cli.Context) error {
-				fmt.Println("Change function")
+				credentials, err := cs.CreateCredentialVar(c)
+				if err != nil {
+					log.Fatal(err)
+				}
+				err = cs.ChangeCredentials(credentials, c.String("n"))
+				if err != nil {
+					log.Fatal(err)
+				}
 				return nil
 			},
+			Flags: ChangeCredentialsFlags,
 		},
 	}
 	return app, nil
