@@ -6,8 +6,22 @@ Create a .env file in the repo with a variable called SH:
  
 ```SH = "<your bash path>" (e.g SH = "~/.zshrc")```
 
+Create a file pass.json with the following structure:
+
+```json5
+{
+    "testeHostname": {
+        "user": "TESTANDO",
+        "pass": "passwordTest",
+        "description": "descriptionTestt",
+        "env_type": "DEV"
+    },
+}
+```
+
+
 After it, exec the commands below on the root folder:
-#### commands
+
 *build* - compile the binary to create the alias.  
 *install* - create the alias to make your life easier.
 ```bash
@@ -37,3 +51,5 @@ ssh-conn l
 ```bash
 ssh-conn -h or --help
 ```
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
