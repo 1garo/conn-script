@@ -4,17 +4,11 @@ import (
 	cs "conn-script/credentials"
 	hn "conn-script/hostname"
 	"fmt"
-	gp "github.com/keybase/gexpect"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
-	"regexp"
 	"text/tabwriter"
 )
-
-const bt2 = "10.112.16.84"
-const connectionType = "ssh"
-const skipSshFingerprint = "StrictHostKeyChecking=no"
 
 func main() {
 	app, err := appConfig()
@@ -33,24 +27,34 @@ func appConfig() (*cli.App, error) {
 	app.Usage = "see the Usage below for more information."
 	connFlags := []cli.Flag{
 		&cli.StringFlag{
-			Name: "host",
+			Name:     "host",
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     "b",
+			Required: false,
 		},
 	}
 	addHostnameFlags := []cli.Flag{
 		&cli.StringFlag{
-			Name: "n",
+			Name:     "n",
+			Required: true,
 		},
 		&cli.StringFlag{
-			Name: "u",
+			Name:     "u",
+			Required: true,
 		},
 		&cli.StringFlag{
-			Name: "p",
+			Name:     "p",
+			Required: true,
 		},
 		&cli.StringFlag{
-			Name: "d",
+			Name:     "d",
+			Required: true,
 		},
 		&cli.StringFlag{
-			Name: "e",
+			Name:     "e",
+			Required: false,
 		},
 	}
 	ChangeCredentialsFlags := []cli.Flag{
@@ -80,7 +84,8 @@ func appConfig() (*cli.App, error) {
 			Name:  "n",
 			Usage: "Connect to the host that you pass",
 			Action: func(c *cli.Context) error {
-				err := connect(c.String("host"), bt2)
+				bt := cs.CheckBalabit(c.String("b"))
+				err := hn.Connect(c.String("host"), bt)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -120,11 +125,8 @@ func appConfig() (*cli.App, error) {
 			Name:  "a",
 			Usage: "Add a new hostname to the json file",
 			Action: func(c *cli.Context) error {
-				credentials, err := cs.CreateCredentialVar(c)
-				if err != nil {
-					log.Fatal(err)
-				}
-				err = hn.AddHostname(credentials, c.String("n"))
+				credentials := cs.CreateCredentialVar(c)
+				err := hn.AddHostname(credentials, c.String("n"))
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -136,11 +138,8 @@ func appConfig() (*cli.App, error) {
 			Name:  "c",
 			Usage: "Change details of a hostname",
 			Action: func(c *cli.Context) error {
-				credentials, err := cs.CreateCredentialVar(c)
-				if err != nil {
-					log.Fatal(err)
-				}
-				err = cs.ChangeCredentials(credentials, c.String("n"))
+				credentials := cs.CreateCredentialVar(c)
+				err := cs.ChangeCredentials(credentials, c.String("n"))
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -150,29 +149,4 @@ func appConfig() (*cli.App, error) {
 		},
 	}
 	return app, nil
-}
-
-func connect(hostname string, bt string) error {
-	userData, err := cs.GetCredentials(hostname)
-	if err != nil {
-		fmt.Printf("%s\nProblem while getting your credentials.", err)
-	}
-	timData, err := cs.GetCredentialsTim("tim_config")
-	if err != nil {
-		fmt.Printf("%s\nProblems while getting your tim credentials", err)
-	}
-	child, err := gp.Spawn(fmt.Sprintf(`%s -o %s %s@%s`, connectionType, skipSshFingerprint, userData.User, bt))
-	if err != nil {
-		fmt.Printf("%s\nA error happened while trying to spawn the ssh connection.", err)
-	}
-	r, _ := regexp.Compile(".*[P-p]assword.*")
-	fmt.Println(r)
-	child.Expect("Gateway username:")
-	child.SendLine(timData.User)
-	child.Expect("Gateway password:")
-	child.SendLine(timData.Password)
-	child.ExpectRegex(fmt.Sprintf("%s", r))
-	child.SendLine(userData.Password)
-	child.Interact()
-	return nil
 }
