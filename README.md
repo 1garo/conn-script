@@ -1,4 +1,4 @@
-# Connection script - 
+# Connection script 
 Aliases to facilitate connect on servers based on a json file. 
 
 Technologies that are being used:
