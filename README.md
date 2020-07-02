@@ -9,7 +9,7 @@ Technologies that are being used:
 - SSH/SFTP protocol
 ## Installation
 
-#####Create a .env file with the following information:
+**Create a .env file with the following information:**
 
 At least create the BT2 variable 'cause it's the default value (e.g: BT1, BT2, BT3 or BT3_VPN):
 
@@ -20,7 +20,7 @@ SH variable with the current bash that you are using:
 ```SH = "<your bash path>" (e.g SH = "~/.zshrc")```
 
 
-#####Create a file pass.json with the following structure:
+**Create a file pass.json with the following structure:**
 
 ```json5
 {
