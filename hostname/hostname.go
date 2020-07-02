@@ -15,7 +15,7 @@ import (
 const connectionType = "ssh"
 const skipSshFingerprint = "StrictHostKeyChecking=no"
 
-func AddHostname(credentials types.Credential, name string) error {
+func AddHostname(credentials *types.Credential, name string) error {
 	var hostname map[string]types.Credential
 	jsonFile, _ := os.Open("pass.json")
 	file, _ := ioutil.ReadAll(jsonFile)
@@ -23,7 +23,7 @@ func AddHostname(credentials types.Credential, name string) error {
 	if errMarshal != nil {
 		log.Fatal(errMarshal)
 	}
-	hostname[name] = credentials
+	hostname[name] = *credentials
 	jsonString, err := json.MarshalIndent(hostname, "", "    ")
 	if err != nil {
 		log.Fatal(err)
