@@ -13,7 +13,7 @@ Technologies that are being used:
 
 At least create the BT2 variable 'cause it's the default value (e.g: BT1, BT2, BT3 or BT3_VPN):
 
-```BT2 = "<your bash path>" (e.g SH = "~/.zshrc")```
+```BT2 = "<balabit ip>"```
 
 SH variable with the current bash that you are using:
 
