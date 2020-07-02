@@ -11,6 +11,11 @@ import (
 )
 
 func main() {
+	// TODO: make the pass.json reads with absolute path
+	if _, err := os.Stat("pass.json"); os.IsNotExist(err) {
+		fmt.Println("pass.json file doesn't exist!")
+		return
+	}
 	app, err := appConfig()
 	if err != nil {
 		log.Fatal(err)
