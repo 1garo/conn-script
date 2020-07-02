@@ -5,8 +5,9 @@ Technologies that are being used:
 - [go](https://golang.org/)
 - [clion](https://www.jetbrains.com/pt-br/clion/)
 - [go mod to see external libs](go.mod)
-- JSON 
-- SSH/SFTP protocol
+- [json](https://www.json.org/json-en.html) 
+- [ssh/sftp protocol](https://pt.wikipedia.org/wiki/Secure_Shell)
+
 ## Installation
 
 **Create a .env file with the following information:**
@@ -54,7 +55,7 @@ ssh-conn n --host <hostname>
 ```
 **Change a hostname** 
 ```bash
-ssh-conn c --n testeHostname --u userTeste --p passwordTest --d descriptionTeste -e DEV
+ssh-conn c --n testeHostname --u userTest --p passwordTest --d descriptionTest -e DEV
 ```
 **List all hostname available** 
 ```bash
