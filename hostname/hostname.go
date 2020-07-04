@@ -12,23 +12,28 @@ import (
 	"regexp"
 )
 
-const connectionType = "ssh"
+var ConnectionType = "ssh"
+
 const skipSshFingerprint = "StrictHostKeyChecking=no"
 
-func AddHostname(credentials *types.Credential, name string) error {
+func AddHostname(credentials types.Credential, name string) error {
 	var hostname map[string]types.Credential
-	jsonFile, _ := os.Open("pass.json")
+	filename, err := cs.GetCredentialsFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+	jsonFile, _ := os.Open(filename)
 	file, _ := ioutil.ReadAll(jsonFile)
 	errMarshal := json.Unmarshal(file, &hostname)
 	if errMarshal != nil {
 		log.Fatal(errMarshal)
 	}
-	hostname[name] = *credentials
+	hostname[name] = credentials
 	jsonString, err := json.MarshalIndent(hostname, "", "    ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = ioutil.WriteFile("pass.json", jsonString, 0644)
+	err = ioutil.WriteFile("credentials.json", jsonString, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,7 +42,11 @@ func AddHostname(credentials *types.Credential, name string) error {
 
 func ListAllHostname() (map[string]types.Credential, error) {
 	var hostname map[string]types.Credential
-	jsonFile, err := os.Open("pass.json")
+	filename, err := cs.GetCredentialsFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+	jsonFile, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +57,7 @@ func ListAllHostname() (map[string]types.Credential, error) {
 	return res, nil
 }
 
-func Connect(hostname string, bt string) error {
+func Connect(hostname string, bt string, connectionType string) error {
 	userData, err := cs.GetCredentials(hostname)
 	if err != nil {
 		fmt.Printf("%s\nProblem while getting your credentials.", err)
@@ -69,5 +78,6 @@ func Connect(hostname string, bt string) error {
 	child.ExpectRegex(fmt.Sprintf("%s", r))
 	child.SendLine(userData.Password)
 	child.Interact()
+	// TODO: create the color highlight based on the env and send the stty when conn-type were ssh
 	return nil
 }

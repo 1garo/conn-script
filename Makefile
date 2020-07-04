@@ -1,4 +1,5 @@
 include .env
+
 build:
 	go build -o cmd/ssh-conn main.go
 install:

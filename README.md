@@ -21,7 +21,7 @@ SH variable with the current bash that you are using:
 ```SH = "<your bash path>" (e.g SH = "~/.zshrc")```
 
 
-**Create a file pass.json with the following structure:**
+**Create a file credentials.json with the following structure:**
 
 ```json5
 {
@@ -47,19 +47,19 @@ make install
 ## Usage 
 **Add a hostname** 
 ```bash
-ssh-conn a --n hostaname --u user --p password --d description -e DEV
+ssh-conn add -n hostaname -u user -p password -d description -e DEV
 ```
 **Connect to a hostname** 
 ```bash
-ssh-conn n --host <hostname> 
+ssh-conn conn -host <hostname> 
 ```
 **Change a hostname** 
 ```bash
-ssh-conn c --n testeHostname --u userTest --p passwordTest --d descriptionTest -e DEV
+ssh-conn change -n testeHostname -u userTest -p passwordTest -d descriptionTest -e DEV
 ```
 **List all hostname available** 
 ```bash
-ssh-conn l
+ssh-conn list
 ```
 **Use help to lean more information about it** 
 ```bash

@@ -8,11 +8,16 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func GetCredentials(hostname string) (*types.Credential, error) {
 	var credentials types.Hostname
-	jsonFile, err := os.Open("pass.json")
+	filename, err := GetCredentialsFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+	jsonFile, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +33,11 @@ func GetCredentials(hostname string) (*types.Credential, error) {
 
 func GetCredentialsTim(hostname string) (*types.CredentialTim, error) {
 	var credentials types.HostnameTim
-	jsonFile, err := os.Open("pass.json")
+	filename, err := GetCredentialsFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+	jsonFile, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,11 +51,13 @@ func GetCredentialsTim(hostname string) (*types.CredentialTim, error) {
 	return res, nil
 }
 
-func ChangeCredentials(credentials *types.Credential, name string) error {
-	// TODO: check if the field is empty, if yes, get it from the json that already exists, else you can change it
-	// TODO: func CheckEmptyField(ex types.Credential)
+func ChangeCredentials(credentials types.Credential, name string) error {
 	var hostname map[string]types.Credential
-	jsonFile, _ := os.Open("pass.json")
+	filename, err := GetCredentialsFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+	jsonFile, _ := os.Open(filename)
 	file, _ := ioutil.ReadAll(jsonFile)
 	errMarshal := json.Unmarshal(file, &hostname)
 	if errMarshal != nil {
@@ -56,21 +67,20 @@ func ChangeCredentials(credentials *types.Credential, name string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	hostname[name] = *credentialsChecked
+	hostname[name] = credentialsChecked
 	jsonString, err := json.MarshalIndent(hostname, "", "    ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = ioutil.WriteFile("pass.json", jsonString, 0644)
+	err = ioutil.WriteFile("credentials.json", jsonString, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return nil
 }
 
-func CreateCredentialVar(c *cli.Context) *types.Credential {
-	var credentials *types.Credential
-	credentials = &types.Credential{
+func CreateCredentialVar(c *cli.Context) types.Credential {
+	var credentials = types.Credential{
 		User:        c.String("u"),
 		Password:    c.String("p"),
 		Description: c.String("d"),
@@ -79,9 +89,13 @@ func CreateCredentialVar(c *cli.Context) *types.Credential {
 	return credentials
 }
 
-func CheckEmptyField(credentials *types.Credential, name string) (*types.Credential, error) {
+func CheckEmptyField(credentials types.Credential, name string) (types.Credential, error) {
 	var hostname map[string]types.Credential
-	jsonFile, _ := os.Open("pass.json")
+	filename, err := GetCredentialsFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+	jsonFile, _ := os.Open(filename)
 	file, _ := ioutil.ReadAll(jsonFile)
 	errMarshal := json.Unmarshal(file, &hostname)
 	if errMarshal != nil {
@@ -89,11 +103,14 @@ func CheckEmptyField(credentials *types.Credential, name string) (*types.Credent
 	}
 	if credentials.EnvType == "" {
 		credentials.EnvType = hostname[name].EnvType
-	} else if credentials.Description == "" {
+	}
+	if credentials.Description == "" {
 		credentials.Description = hostname[name].Description
-	} else if credentials.User == "" {
+	}
+	if credentials.User == "" {
 		credentials.User = hostname[name].User
-	} else {
+	}
+	if credentials.Password == "" {
 		credentials.Password = hostname[name].Password
 	}
 	return credentials, nil
@@ -117,4 +134,12 @@ func CheckBalabit(bt string) string {
 		res = os.Getenv("BT2")
 	}
 	return res
+}
+
+func GetCredentialsFile() (string, error) {
+	var path, err = filepath.Abs("credentials.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return path, nil
 }
