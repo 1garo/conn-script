@@ -18,3 +18,8 @@ type HostnameTim struct {
 type Hostname struct {
 	Credentials map[string]*Credential
 }
+
+type Terminal struct {
+	Rows    string
+	Columns string
+}
