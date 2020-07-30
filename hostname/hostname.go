@@ -2,14 +2,15 @@ package hostname
 
 import (
 	cs "conn-script/credentials"
+	expect "conn-script/expect"
 	"conn-script/types"
 	"encoding/json"
 	"fmt"
-	gp "github.com/keybase/gexpect"
+	//"io"
 	"io/ioutil"
 	"log"
 	"os"
-	"regexp"
+	//	"regexp"
 )
 
 var ConnectionType = "ssh"
@@ -58,26 +59,5 @@ func ListAllHostname() (map[string]types.Credential, error) {
 }
 
 func Connect(hostname string, bt string, connectionType string) error {
-	userData, err := cs.GetCredentials(hostname)
-	if err != nil {
-		fmt.Printf("%s\nProblem while getting your credentials.", err)
-	}
-	timData, err := cs.GetCredentialsTim("tim_config")
-	if err != nil {
-		fmt.Printf("%s\nProblems while getting your tim credentials", err)
-	}
-	child, err := gp.Spawn(fmt.Sprintf(`%s -o %s %s@%s`, connectionType, skipSshFingerprint, userData.User, bt))
-	if err != nil {
-		fmt.Printf("%s\nA error happened while trying to spawn the ssh connection.", err)
-	}
-	r, _ := regexp.Compile(".*[P-p]assword.*")
-	child.Expect("Gateway username:")
-	child.SendLine(timData.User)
-	child.Expect("Gateway password:")
-	child.SendLine(timData.Password)
-	child.ExpectRegex(fmt.Sprintf("%s", r))
-	child.SendLine(userData.Password)
-	child.Interact()
-	// TODO: create the color highlight based on the env and send the stty when conn-type were ssh
-	return nil
+	// TODO: Write a spawn/expect feature, all that exist is shit!
 }
